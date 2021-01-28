@@ -3,7 +3,7 @@ Name: Dillan Spencer
 V-Number: V00914254
 
 ----- Run Program -----
-Program can be run using exactly on parameter.
+Program can be run using exactly one parameter.
 Run the command as following:
 
 python SmartClient.py www.uvic.ca
