@@ -189,7 +189,6 @@ def response(sock, server, version):
     elif status == '301':
         print("Status 301")
         server, support = redirect(data_head)
-        cookies = findCookies(data_head, server)
         done = False
 
         if support:
@@ -199,7 +198,11 @@ def response(sock, server, version):
     elif status == '302':
         print("Status 302")
         server, support = redirect(data_head)
-        cookies = findCookies(data_head, server)
+
+        if support:
+            protocol_support[HTTPS] = True
+            return server, version, cookies, True, False
+
         print("\nRedirecting to: ", server, "\n")
         return server, default_version, cookies, True, False
 
