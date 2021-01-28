@@ -68,6 +68,7 @@ def isHTTP2(server, version):
     return support
 
 
+# Find cookies
 def findCookies(head, domain):
     pattern = re.compile("[Ss]et-Cookie: .+")
     pattern_key = re.compile("(\S+)(=\S*;)")
