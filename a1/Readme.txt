@@ -48,4 +48,4 @@ Any other are handled by printing out the error code and exiting the program.
 Program grabs any cookies from the header using Regular Expression.
 Prints them in form:
 
-Cookie: <key>, <domain_name>, <expiry dat> (if any?)
+Cookie: <key>, <domain_name>, <expiry date> (if any?)
