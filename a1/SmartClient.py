@@ -1,9 +1,9 @@
 import socket
 import sys
 import ssl
-import time
 import re
 
+# GLOBAL VARIABLES
 default_version = "HTTP/1.1"
 crlf = "\r\n"
 
@@ -13,6 +13,12 @@ HTTPS = 1
 HTTP2 = 2
 
 
+# Creates a socket for sending and receiving data from the server
+# Params:
+# server: server address eg. www.uvic.ca
+# encrypt: boolean - wraps socket and changes port to 443
+# Returns:
+# socket connected to server on port 80 or 443
 def createSocket(server, encrypt):
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -35,31 +41,19 @@ def createSocket(server, encrypt):
         sys.exit(1)
 
 
-def isHTTPs(server, version):
-    print("Checking if supports HTTPs...")
-    sock = createSocket(server, True)
-    request(sock, server, version)
-
-    version, support, done = response(sock, server, version, True)
-
-    # add support to support list
-    protocol_support[HTTPS] = support
-
-    return version, support, done
-
-
-def isHTTP2(server, version):
-    context = get_Http_Context()
+# Checks whether server supports HTTP 2.0
+# If there is a socket error when connecting to port 443
+# Params: # server: server address eg. www.uvic.ca
+# Returns: support: (boolean) supports HTTP 2.0
+def isHTTP2(server):
+    context = getHttpContext()
     conn = context.wrap_socket(
         socket.socket(socket.AF_INET, socket.SOCK_STREAM), server_hostname=server)
 
     try:
-        if conn.connect((server, 443)) != socket.error:
-            protocol_support[HTTPS] = True
-    except socket.error:
-        protocol_support[HTTPS] = False
-    except ssl.SSLCertVerificationError as ssl_error:
-        print("Certification failed")
+        conn.connect((server, 443))
+    except socket.error as err:
+        print("Error connecting on port 443 with wrapped socket...", err)
 
     # Check if protocol is 'h2'
     support = (conn.selected_alpn_protocol() == 'h2')
@@ -68,11 +62,32 @@ def isHTTP2(server, version):
     return support
 
 
-# Find cookies
+# Creates ssl context with correct protocols for HTTP 2.0
+# Returns: context: ssl context for HTTP 2.0 socket
+def getHttpContext():
+    context = ssl.create_default_context(purpose=ssl.Purpose.CLIENT_AUTH)
+    context.options |= (
+            ssl.OP_NO_SSLv2 | ssl.OP_NO_SSLv3 | ssl.OP_NO_TLSv1 | ssl.OP_NO_TLSv1_1 | ssl.OP_NO_COMPRESSION
+    )
+
+    context.set_alpn_protocols(['h2', 'spdy/3', 'http/1.1'])
+
+    try:
+        context.set_npn_protocols(["h2", "http/1.1"])
+    except NotImplementedError:
+        pass
+
+    return context
+
+
+# Parses through the response header and pulls out all cookie data
+# Params: head: response header, domain: server address
+# Returns: (list) list of cookie data
 def findCookies(head, domain):
-    pattern = re.compile("[Ss]et-Cookie: .+")
+    pattern = re.compile("[Ss]et-[Cc]ookie: .+")
     pattern_key = re.compile("(\S+)(=\S*;)")
     pattern_domain = re.compile("([Dd]omain=)(\S+)")
+    pattern_expires = re.compile("([Ee]xpires=)(\S+.\S+.\S+.\S+.)")
 
     cookie_list = pattern.findall(head)
     cookies = []
@@ -88,8 +103,17 @@ def findCookies(head, domain):
         if pattern_domain.search(cookie) is not None:
             domain = pattern_domain.search(cookie).group(2)
 
+        # find domain name if any
+        if pattern_expires.search(cookie) is not None:
+            expires = pattern_expires.search(cookie).group(2)
+        else:
+            expires = None
+
         # format cookie properties into string for output
-        cookie_format = "Cookie: - Key: " + key + ", Domain Name: " + domain
+        if expires is not None:
+            cookie_format = "Cookie: - Key: " + key + ", Domain Name: " + domain + ", Expires: " + expires
+        else:
+            cookie_format = "Cookie: - Key: " + key + ", Domain Name: " + domain
 
         # append cookie to list
         cookies.append(cookie_format)
@@ -97,6 +121,10 @@ def findCookies(head, domain):
     return cookies
 
 
+# Parses through response header and finds redirect location
+# Looks for https in header and decides weather server supports HTTPS
+# Params: header: response header
+# Returns: server: redirect address, (boolean) support: HTTPS support
 def redirect(header):
     pattern = re.compile("(Location: http[s]?://)((www.\S+\.\w{2,3})(/)?(?!http[s]?://))")
     http_pattern = re.compile("https://")
@@ -114,7 +142,11 @@ def redirect(header):
     return server, support
 
 
-def request(sock, server, version):
+# Builds a request str and sends it to the server using the socket
+# Params:
+# (socket) sock: socket used for sending request
+# (str) server: server address
+def request(sock, server):
     # create http request
     print("Initializing request...")
 
@@ -127,21 +159,11 @@ def request(sock, server, version):
     print(req)
 
 
-def HTTP2Request(sock, server, version):
-    # create request
-    print("Generating request...")
-    request_line = "HEAD / " + version + " " + crlf
-    general_header = "Connection: Upgrade, HTTP2-Settings" + crlf
-    request_header = "Host: " + server + crlf + "Upgrade: h2c" + crlf + "HTTP2-Settings: " + crlf + "User-Agent: curl/7.35.0" + crlf + crlf
-
-    req = request_line + general_header + request_header
-    encoded_request = req.encode()
-
-    print("Sending Request to HTTP 2.0")
-    sock.sendall(encoded_request)
-    print(req)
-
-
+# Parses through response header and pulls out version and status code
+# Params: data: response header
+# Returns:
+# http_version: newest version that the server supports
+# status: status code (eg. 200)
 def evaluateHead(data):
     version_pattern = re.compile("HTTP/\d\.\d")
     status_pattern = re.compile("\d{3}")
@@ -152,10 +174,13 @@ def evaluateHead(data):
     return http_version, status
 
 
-def response(sock, server, version):
+# Receives data from the server and handles data accordingly
+# Params:
+# (socket) sock: socket used for sending request
+# (str) server: server address
+def response(sock, server):
     support = None
     cookies = []
-    domain = server
     print("Awaiting response from host...")
 
     # receive data
@@ -170,11 +195,6 @@ def response(sock, server, version):
     data_list = data_encoded.split(crlf + crlf)
     data_head = data_list[0]
     print("\n", data_head)
-
-    if len(data_list) > 2:
-        data_body = data_list[1]
-    else:
-        data_body = "Null"
 
     # find http version and response code
     # -----------------------
@@ -241,43 +261,11 @@ def response(sock, server, version):
     return server, version, cookies, False, done
 
 
-def get_Http_Context():
-    context = ssl.create_default_context(purpose=ssl.Purpose.SERVER_AUTH)
-    context.options |= (
-            ssl.OP_NO_SSLv2 | ssl.OP_NO_SSLv3 | ssl.OP_NO_TLSv1 | ssl.OP_NO_TLSv1_1 | ssl.OP_NO_COMPRESSION
-    )
-
-    context.set_alpn_protocols(['h2', 'spdy/3', 'http/1.1'])
-
-    try:
-        context.set_npn_protocols(["h2", "http/1.1"])
-    except NotImplementedError:
-        pass
-
-    return context
-
-
-def HTTP2Response(sock, server):
-    print("Awaiting response...")
-
-    # Receive response
-    data = sock.recv(4096)
-    data_decoded = data.decode("latin1")
-
-    version, status = evaluateHead(data_decoded)
-
-    if version == 'HTTP/2.0' or status == '101':
-        print("Http 2.0 is supported")
-        return True
-
-    # 302 error
-
-    else:
-        return False
-
-
+# Prints out all of the answers for support and cookies
+# Params: cookies: list of cookie data
 def deliverables(cookies):
     print("---------------------------------")
+    print("DELIVERABLES: \n")
     # Support for HTTP 1.0
     print("Support HTTP/1.1: ", protocol_support[HTTP_1_1])
 
@@ -303,19 +291,17 @@ def main():
     # Grab domain name and initial variables
     domain = sys.argv[1]
     server = domain
-    version = default_version
-    cookies = []
     encrypt = False
 
     while True:
         sock = createSocket(server, encrypt)
-        request(sock, server, version)
-        server, version, cookies, encrypt, done = response(sock, server, version)
+        request(sock, server)
+        server, version, cookies, encrypt, done = response(sock, server)
         sock.close()
         if done:
             break
 
-    isHTTP2(server, version)
+    isHTTP2(server)
 
     deliverables(cookies)
 
