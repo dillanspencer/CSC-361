@@ -1,3 +1,6 @@
+# CSC 361 Assignment 1 SmartClient.py
+# Dillan Spencer V00914254
+
 import socket
 import sys
 import ssl
@@ -6,6 +9,7 @@ import re
 # GLOBAL VARIABLES
 default_version = "HTTP/1.1"
 crlf = "\r\n"
+depth = 0
 
 protocol_support = [False, False, False]
 HTTP_1_1 = 0
@@ -52,6 +56,7 @@ def isHTTP2(server):
 
     try:
         conn.connect((server, 443))
+        protocol_support[HTTPS] = True
     except socket.error as err:
         print("Error connecting on port 443 with wrapped socket...", err)
 
@@ -125,10 +130,16 @@ def findCookies(head, domain):
 # Looks for https in header and decides weather server supports HTTPS
 # Params: header: response header
 # Returns: server: redirect address, (boolean) support: HTTPS support
-def redirect(header):
-    pattern = re.compile("(Location: http[s]?://)((www.\S+\.\w{2,3})(/)?(?!http[s]?://))")
+def redirect(server, header):
+    global depth
+    depth += 1
+    pattern = re.compile("([Ll]?ocation: http[s]?://)((www.\S+\.\w{2,3})(/)?(?!http[s]?://))")
     http_pattern = re.compile("https://")
-    match = pattern.search(header).group()
+
+    try:
+        match = pattern.search(header).group()
+    except AttributeError:
+        return server, True, True
 
     server = pattern.search(match).group(3)
 
@@ -139,7 +150,7 @@ def redirect(header):
 
     print(server, "Found in redirect")
 
-    return server, support
+    return server, support, False
 
 
 # Builds a request str and sends it to the server using the socket
@@ -200,6 +211,10 @@ def response(sock, server):
     # -----------------------
     version, status = evaluateHead(data_head)
 
+    # check for HTTP 1.1
+    if version == default_version:
+        protocol_support[HTTP_1_1] = True
+
     # Verify specifics based off of results
     # -----------------------
     if status == '200':
@@ -208,20 +223,21 @@ def response(sock, server):
 
     elif status == '301':
         print("Status 301")
-        server, support = redirect(data_head)
-        done = False
+        server, support, done = redirect(server, data_head)
 
         if support:
             protocol_support[HTTPS] = True
-            return server, version, cookies, True, False
+            cookies = findCookies(data_head, server)
+            return server, version, cookies, True, done
 
     elif status == '302':
         print("Status 302")
-        server, support = redirect(data_head)
+        server, support, done = redirect(server, data_head)
 
         if support:
             protocol_support[HTTPS] = True
-            return server, version, cookies, True, False
+            cookies = findCookies(data_head, server)
+            return server, version, cookies, True, done
 
         print("\nRedirecting to: ", server, "\n")
         return server, default_version, cookies, True, False
@@ -246,10 +262,6 @@ def response(sock, server):
         print("Unrecognized status code: exiting...")
         sys.exit(1)
 
-    # print response head and body
-
-    #  find cookies
-
     print("Version: ", version)
     print("Status: ", status)
     # add support to support protocol list
@@ -267,17 +279,17 @@ def deliverables(cookies):
     print("---------------------------------")
     print("DELIVERABLES: \n")
     # Support for HTTP 1.0
-    print("Support HTTP/1.1: ", protocol_support[HTTP_1_1])
+    print("Support HTTP/1.1: {}".format(protocol_support[HTTP_1_1]))
 
     # Support for HTTPS
-    print("Support HTTPS: ", protocol_support[HTTPS])
+    print("Support HTTPS: {}".format(protocol_support[HTTPS]))
 
     # Support for HTTP 2.0
-    print("Support HTTP/2.0: ", protocol_support[HTTP2])
+    print("Support HTTP/2.0: {}".format(protocol_support[HTTP2]))
 
     # check if website doesnt use cookies
     if len(cookies) == 0:
-        print("Website has no Cookies...")
+        print("No Cookies Found...")
 
     # print list of cookies
     for cookie in cookies:

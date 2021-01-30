@@ -1,4 +1,4 @@
-CSC 361 ASSIGNMENT 1
+CSC 361 ASSIGNMENT 1 SmartClient.py
 Name: Dillan Spencer
 V-Number: V00914254
 
