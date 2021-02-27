@@ -38,6 +38,9 @@ def main():
             packets[packet_num].TCP_header = load_tcp_header(data)
             check_connection(packets[packet_num], connections)
         except struct.error as e:
+            print(connections[5457998686].get_num_packets())
+            print(connections[5457998686].get_src_packet_total())
+            print(connections[5457998686].get_dst_packet_total())
             break
 
 
