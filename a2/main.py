@@ -23,6 +23,7 @@ def main():
     packets[packet_num].Ethernet_header = load_ethernet_header(data)
     packets[packet_num].IP_header = load_ipv4_header(data)
     packets[packet_num].TCP_header = load_tcp_header(data)
+    check_connection(packets[packet_num], connections)
 
     while True:
         try:
@@ -37,7 +38,6 @@ def main():
             packets[packet_num].TCP_header = load_tcp_header(data)
             check_connection(packets[packet_num], connections)
         except struct.error as e:
-            print(len(connections))
             break
 
 
@@ -57,10 +57,10 @@ def check_connection(packet, connections):
         print("ID not found in connections...")
         print("Creating new connection!")
         c = connection.Connection(src_ip, src_port, dst_ip, dst_port)
-        c.packets.append(packet)
+        c.add_packet(packet)
         connections[ID] = c
     else:
-        connections[ID]
+        connections[ID].add_packet(packet)
 
 
 def load_general_header(data):
@@ -99,9 +99,9 @@ def load_ethernet_header(data):
     header.set_dest_addr(data[0:6])
     header.set_src_addr(data[6:12])
     header.set_type(data[12:14])
-    # print("Destination MAC: ", header.dest_addr)
-    # print("Source MAC: ", header.src_addr)
-    # print("Eth Type: ", header.type)
+    print("Destination MAC: ", header.dest_addr)
+    print("Source MAC: ", header.src_addr)
+    print("Eth Type: ", header.type)
     return header
 
 
