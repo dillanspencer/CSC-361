@@ -1,5 +1,6 @@
 import sys
 import utils
+import connection
 import struct
 
 
@@ -7,6 +8,7 @@ def main():
     file_name = sys.argv[1]
     file = open(file_name, "rb")
     packets = []
+    connections = {}
 
     data = file.read(24)
     gen_header = load_general_header(data)
@@ -33,8 +35,32 @@ def main():
             packets[packet_num].Ethernet_header = load_ethernet_header(data)
             packets[packet_num].IP_header = load_ipv4_header(data)
             packets[packet_num].TCP_header = load_tcp_header(data)
-        except struct.error:
+            check_connection(packets[packet_num], connections)
+        except struct.error as e:
+            print(len(connections))
             break
+
+
+def check_connection(packet, connections):
+    src_ip = packet.IP_header.src_ip
+    dst_ip = packet.IP_header.dst_ip
+    src_port = packet.TCP_header.src_port
+    dst_port = packet.TCP_header.dst_port
+    buffer = (src_ip, src_port, dst_ip, dst_port)
+    ID = utils.pack_id(buffer)
+
+    print("SRC IP: ", src_ip, "SRC PORT: ", src_port)
+    print("DST IP: ", dst_ip, "DST PORT: ", dst_port)
+    print("ID: ", ID)
+
+    if ID not in connections:
+        print("ID not found in connections...")
+        print("Creating new connection!")
+        c = connection.Connection(src_ip, src_port, dst_ip, dst_port)
+        c.packets.append(packet)
+        connections[ID] = c
+    else:
+        connections[ID]
 
 
 def load_general_header(data):
@@ -117,13 +143,13 @@ def load_tcp_header(data):
     header.get_window_size(w1, w2)
     header.get_flags(flags)
 
-    print("SRC: ", header.src_port)
-    print("DEST: ", header.dst_port)
-    print("SEQ: ", header.seq_num)
-    print("ACK: ", header.ack_num)
-    print("DATA OFFSET: ", header.data_offset)
-    print("WINDOW SIZE: ", header.window_size)
-    print("FLAGS: ", header.flags)
+    # print("SRC: ", header.src_port)
+    # print("DEST: ", header.dst_port)
+    # print("SEQ: ", header.seq_num)
+    # print("ACK: ", header.ack_num)
+    # print("DATA OFFSET: ", header.data_offset)
+    # print("WINDOW SIZE: ", header.window_size)
+    # print("FLAGS: ", header.flags)
 
     return header
 
