@@ -1,0 +1,16 @@
+Metadata-Version: 1.1
+Name: typedef
+Version: 0.9.0.7
+Summary: Conveniently handle structs, unions, and arrays
+Home-page: https://github.com/{}/typedef
+Author: bnbdr
+Author-email: bad.32@outlook.com
+License: MIT
+Download-URL: https://github.com/bnbdr/typedef/archive/v0.9.0.7.tar.gz
+Description: UNKNOWN
+Keywords: typedef,struct,union, pack,unpack,binary
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 2
+Classifier: Programming Language :: Python :: 3
+Classifier: Intended Audience :: Developers
+Classifier: Operating System :: OS Independent
