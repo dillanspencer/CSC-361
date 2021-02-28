@@ -27,7 +27,6 @@ def main():
 
     while True:
         try:
-            print("------------")
             data = file.read(16)
             packet_num += 1
             packets.append(load_packet_header(packet_num, data, orig_time))
@@ -43,6 +42,8 @@ def main():
             print(connections[5457998686].get_dst_packet_total())
             break
 
+    connection_details(connections)
+
 
 def check_connection(packet, connections):
     src_ip = packet.IP_header.src_ip
@@ -52,13 +53,11 @@ def check_connection(packet, connections):
     buffer = (src_ip, src_port, dst_ip, dst_port)
     ID = utils.pack_id(buffer)
 
-    print("SRC IP: ", src_ip, "SRC PORT: ", src_port)
-    print("DST IP: ", dst_ip, "DST PORT: ", dst_port)
-    print("ID: ", ID)
+    # print("SRC IP: ", src_ip, "SRC PORT: ", src_port)
+    # print("DST IP: ", dst_ip, "DST PORT: ", dst_port)
+    # print("ID: ", ID)
 
     if ID not in connections:
-        print("ID not found in connections...")
-        print("Creating new connection!")
         c = connection.Connection(src_ip, src_port, dst_ip, dst_port)
         c.add_packet(packet)
         connections[ID] = c
@@ -91,9 +90,9 @@ def load_packet_header(packet_num, data, time):
     packet.packet_size_set(orig_len)
     packet.buffer = data
 
-    print("TIME: ", packet.timestamp)
-    print("INCL_LEN: ", packet.incl_len)
-    print("SIZE: ", packet.size)
+    # print("TIME: ", packet.timestamp)
+    # print("INCL_LEN: ", packet.incl_len)
+    # print("SIZE: ", packet.size)
     return packet
 
 
@@ -102,9 +101,9 @@ def load_ethernet_header(data):
     header.set_dest_addr(data[0:6])
     header.set_src_addr(data[6:12])
     header.set_type(data[12:14])
-    print("Destination MAC: ", header.dest_addr)
-    print("Source MAC: ", header.src_addr)
-    print("Eth Type: ", header.type)
+    # print("Destination MAC: ", header.dest_addr)
+    # print("Source MAC: ", header.src_addr)
+    # print("Eth Type: ", header.type)
     return header
 
 
@@ -155,6 +154,29 @@ def load_tcp_header(data):
     # print("FLAGS: ", header.flags)
 
     return header
+
+
+def connection_details(connections):
+    inc = 1
+    for conn in connections.values():
+        start_time, end_time, total_time = conn.get_connection_time()
+        print("-------------------------")
+        print("Connection: ", inc)
+        print("Source Address: ", conn.address[0])
+        print("Source Port: ", conn.address[1])
+        print("Destination Address: ", conn.address[2])
+        print("Destination Port: ", conn.address[3])
+        print("Status: ", conn.flags)
+        print("Start Time: ", start_time)
+        print("End Time: ", end_time)
+        print("Duration: ", total_time)
+        print("Number of packets sent from Source to Destination: ", conn.get_src_packet_total())
+        print("Number of packets sent from Destination to Source: ", conn.get_dst_packet_total())
+        print("Total number of packets: ", conn.get_num_packets())
+        print("Number of data bytes sent from Source to Destination: ", conn.get_src_bytes_total())
+        print("Number of data bytes sent from Destination to Source: ", conn.get_dst_bytes_total())
+        print("Number of bytes sent: ", conn.get_num_bytes())
+        inc += 1
 
 
 if __name__ == '__main__':

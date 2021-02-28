@@ -67,6 +67,15 @@ class Connection:
     def get_dst_packet_total(self):
         return self.packets_sent[self.address[2]]
 
+    def get_src_bytes_total(self):
+        return self.bytes_sent[self.address[0]]
+
+    def get_dst_bytes_total(self):
+        return self.bytes_sent[self.address[2]]
+
+    def get_num_bytes(self):
+        return self.bytes_sent[self.address[0]] + self.bytes_sent[self.address[2]]
+
     # returns total number of packets sent
     def get_num_packets(self):
         return len(self.packets)
