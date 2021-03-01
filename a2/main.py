@@ -15,9 +15,10 @@ def main():
 
     data = file.read(16)
     orig_time = data[0:4]
+    orig_micro = data[4:8]
     packet_num = 0
 
-    packets.append(load_packet_header(packet_num, data, orig_time))
+    packets.append(load_packet_header(packet_num, data, orig_time, orig_micro))
 
     data = file.read(packets[packet_num].incl_len)
     packets[packet_num].Ethernet_header = load_ethernet_header(data)
@@ -29,7 +30,7 @@ def main():
         try:
             data = file.read(16)
             packet_num += 1
-            packets.append(load_packet_header(packet_num, data, orig_time))
+            packets.append(load_packet_header(packet_num, data, orig_time, orig_micro))
 
             data = file.read(packets[packet_num].incl_len)
             packets[packet_num].Ethernet_header = load_ethernet_header(data)
@@ -77,7 +78,7 @@ def load_general_header(data):
     return gen_header
 
 
-def load_packet_header(packet_num, data, time):
+def load_packet_header(packet_num, data, time, micro):
     packet = utils.packet()
     buff1 = data[0:4]
     buff2 = data[4:8]
@@ -85,7 +86,7 @@ def load_packet_header(packet_num, data, time):
     orig_len = data[12:16]
 
     packet.packet_No_set(packet_num)
-    packet.timestamp_set(buff1, buff2, time)
+    packet.timestamp_set(buff1, buff2, time, micro)
     packet.packet_incl_len_set(incl_len)
     packet.packet_size_set(orig_len)
     packet.buffer = data
@@ -158,15 +159,48 @@ def load_tcp_header(data):
 
 def connection_details(connections):
     inc = 1
+    complete_connections = 0
+    reset_connections = 0
+    open_connections = 0
+    min_time = float('inf')
+    mean_time = 0
+    max_time = float('-inf')
+    min_packets = float('inf')
+    mean_packets = 0
+    max_packets = float('-inf')
+    min_window = float('inf')
+    mean_window = 0
+    max_window = float('-inf')
     for conn in connections.values():
+        # STATISTICS
         start_time, end_time, total_time = conn.get_connection_time()
+        if conn.is_complete():
+            complete_connections += 1
+            # TIME
+            min_time = min(total_time, min_time)
+            mean_time += total_time
+            max_time = max(total_time, max_time)
+            # PACKETS
+            min_packets = min(conn.get_num_packets(), min_packets)
+            mean_packets += conn.get_num_packets()
+            max_packets = max(conn.get_num_packets(), max_packets)
+            # WINDOW SIZE
+            min_window = min(conn.min_window, min_window)
+            mean_window += conn.total_window
+            max_window = max(conn.max_window, max_window)
+        if conn.is_reset():
+            reset_connections += 1
+        if conn.is_open():
+            open_connections += 1
+
+        # CONNECTION DETAILS OUTPUT
         print("-------------------------")
         print("Connection: ", inc)
         print("Source Address: ", conn.address[0])
         print("Source Port: ", conn.address[1])
         print("Destination Address: ", conn.address[2])
         print("Destination Port: ", conn.address[3])
-        print("Status: ", conn.flags)
+        print("Status: ", conn.check_connection_state())
         print("Start Time: ", start_time)
         print("End Time: ", end_time)
         print("Duration: ", total_time)
@@ -177,6 +211,23 @@ def connection_details(connections):
         print("Number of data bytes sent from Destination to Source: ", conn.get_dst_bytes_total())
         print("Number of bytes sent: ", conn.get_num_bytes())
         inc += 1
+
+    print("GENERAL")
+    print("------------------------------")
+    print("Complete Connections: ", complete_connections)
+    print("Reset Connections: ", reset_connections)
+    print("Open Connections: ", open_connections)
+    print("Min Connection time: %2f" % min_time)
+    print("Mean Connection time: %2f" % float(mean_time/complete_connections))
+    print("Max Connection time: %2f" % max_time)
+    print("")
+    print("Minimum number of packets sent/received: ", min_packets)
+    print("Mean number of packets sent/received: ", float(mean_packets/complete_connections))
+    print("Maximum number of packets sent/received: ", max_packets)
+    print("")
+    print(" Minimum receive window size including sent/received: ", str(min_window) + " bytes")
+    print("Mean receive window size including sent/received: ", str(float(mean_window/complete_connections)) + " bytes")
+    print("Maximum receive window size including sent/received: ", str(max_window) + " bytes")
 
 
 if __name__ == '__main__':
