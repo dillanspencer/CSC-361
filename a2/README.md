@@ -2,10 +2,12 @@
 <br />
 <p align="center">
 
-  <h3 align="center">CSC 361 Programming Assignment 2</h3>
+  <h2 align="center">CSC 361 Programming Assignment 2</h2>
 
   <p align="center">
-    project_description
+    The purpose of this project is to understand the details of state management in Transmission
+7 Control Protocol (TCP). You are required to write a python program to analyze the TCP protocol
+8 behavior.
     <br />
     <a href="https://github.com/github_username/repo_name"><strong>Explore the docs »</strong></a>
     <br />
