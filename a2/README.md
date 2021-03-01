@@ -36,25 +36,22 @@
 
 
 <!-- ABOUT THE PROJECT -->
-## About The Project
+## How To Run The Program
 
-[![Product Name Screen Shot][product-screenshot]](https://example.com)
 
 Here's a blank template to get started:
-**To avoid retyping too much info. Do a search and replace with your text editor for the following:**
-`github_username`, `repo_name`, `twitter_handle`, `email`, `project_title`, `project_description`
 
-
-### Built With
-
-* []()
-* []()
-* []()
-
-
+1. Python
+ ```sh
+ python main.py filename.cap
+ ```
+2. Python 3
+```sh
+ python3 main.py filename.cap
+ ```
 
 <!-- GETTING STARTED -->
-## Getting Started
+## Project Outline
 
 To get a local copy up and running follow these simple steps.
 
