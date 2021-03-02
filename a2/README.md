@@ -20,7 +20,7 @@
   <summary><h2 style="display: inline-block">Table of Contents</h2></summary>
   <ol>
     <li>
-      <a href="#about-the-project">How to Run The Program</a>
+      <a href="#how-to-run-the-program">How to Run The Program</a>
     </li>
     <li>
       <a href="#getting-started">Outline</a>
