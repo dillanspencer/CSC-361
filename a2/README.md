@@ -56,23 +56,27 @@ Here's a blank template to get started:
 Assignment 2: TCP Traffic Analysis
 
 ### Requirements
-
-This is an example of how to list things you need to use the software and how to install them.
-* npm
-  ```sh
-  npm install npm@latest -g
-  ```
+You will be given a sample TCP trace file (sample-capture-file.cap). During the period traced, a
+11 single web client accesses different web sites on the Internet. This trace is to be used for your own
+12 test. TA might use a different trace file to test your code.
+13 You need to write a python program for parsing and processing the trace file, and tracking TCP
+14 state information. In this assignment, your code will be tested on the server linux.csc.uvic.ca. As
+15 such, you are allowed to use only the Python packages of python3 currently installed on
+16 linux.csc.uvic.ca. You are not allowed to install/use other third-party python packages.
+17 Your program should process the trace file and compute summary information about TCP
+18 connections. Note that a TCP connection is identified by a 4-tuple (IP source address, source port,
+19 IP destination address, destination port), and packets can flow in both directions on a connection
+20 (i.e., duplex). Also note that the packets from different connections can be arbitrarily interleaved
+21 with each other in time, so your program will need to extract packets and associate them with the
+22 correct connection
 
 ### Deliverables
 
-1. Clone the repo
-   ```sh
-   git clone https://github.com/github_username/repo_name.git
-   ```
-2. Install NPM packages
-   ```sh
-   npm install
-   ```
+For your final submission of your assignment, you are required to submit your source code. You
+57 should include a readme file to tell TA how to run your code.
+58 Zip your assignments (code) as one tar file using %tar -czvf on linux.csc.uvic.ca.
+59 The marking scheme is as follows (refer to outputformat.pdf as well):
+ 
    
 ### Output
 
