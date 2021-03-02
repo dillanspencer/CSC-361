@@ -162,6 +162,7 @@ def connection_details(connections):
     complete_connections = 0
     reset_connections = 0
     open_connections = 0
+    total_packets = 0
     min_time = float('inf')
     mean_time = 0
     max_time = float('-inf')
@@ -176,6 +177,7 @@ def connection_details(connections):
         start_time, end_time, total_time = conn.get_connection_time()
         if conn.is_complete():
             complete_connections += 1
+            total_packets += conn.get_num_packets()
             # TIME
             min_time = min(total_time, min_time)
             mean_time += total_time
@@ -225,8 +227,8 @@ def connection_details(connections):
     print("Mean number of packets sent/received: ", float(mean_packets/complete_connections))
     print("Maximum number of packets sent/received: ", max_packets)
     print("")
-    print(" Minimum receive window size including sent/received: ", str(min_window) + " bytes")
-    print("Mean receive window size including sent/received: ", str(float(mean_window/complete_connections)) + " bytes")
+    print("Minimum receive window size including sent/received: ", str(min_window) + " bytes")
+    print("Mean receive window size including sent/received: %2f" % float(mean_window/total_packets), "bytes")
     print("Maximum receive window size including sent/received: ", str(max_window) + " bytes")
 
 
