@@ -182,7 +182,6 @@ def connection_details(connections):
             mean_packets += conn.get_num_packets()
             max_packets = max(conn.get_num_packets(), max_packets)
             # RTT
-            min_rtt = min(conn.get_min_rtt(), min_rtt)
             # WINDOW SIZE
             min_window = min(conn.min_window, min_window)
             mean_window += conn.total_window
@@ -209,7 +208,6 @@ def connection_details(connections):
         print("Number of data bytes sent from Source to Destination: ", conn.get_src_bytes_total())
         print("Number of data bytes sent from Destination to Source: ", conn.get_dst_bytes_total())
         print("Number of bytes sent: ", conn.get_num_bytes())
-        print("RTT: ", conn.rtt_packets)
         inc += 1
 
     print("GENERAL")
