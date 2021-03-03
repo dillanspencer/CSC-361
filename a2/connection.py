@@ -37,6 +37,7 @@ class Connection:
         self.check_packet_sent(packet)
         self.check_packet_time(packet)
         self.check_window_size(packet)
+        self.check_rtt(packet)
 
     # Checks all bits of flags and increment the flag dictionary
     def check_flags(self, packet):
@@ -75,6 +76,38 @@ class Connection:
         self.min_window = min(packet.TCP_header.window_size, self.min_window)
         self.max_window = max(packet.TCP_header.window_size, self.max_window)
 
+    def check_rtt(self, packet):
+        # Check if the packet came from src or dst
+        src = packet.IP_header.src_ip
+
+        # Packet from SRC
+        if src == self.address[0]:
+            if packet.TCP_header.flags["SYN"] == 1:
+                ack = packet.TCP_header.seq_num + 1
+                self.rtt_pairs[ack] = packet
+            elif packet.TCP_header.flags["FIN"] == 1:
+                ack = packet.TCP_header.seq_num + 1
+                self.rtt_pairs[ack] = packet
+            elif packet.size > 0:
+                ack = packet.TCP_header.ack_num - packet.get_payload()
+                self.rtt_pairs[ack] = packet
+
+        # Packet from DST
+        elif src == self.address[2]:
+            seq = packet.TCP_header.seq_num
+            ack = packet.TCP_header.ack_num
+            try:
+                p = self.rtt_pairs[seq]
+                rtt = utils.get_RTT_value(p, packet)
+                self.rtt_packets.append(rtt)
+            except KeyError:
+                try:
+                    p = self.rtt_pairs[ack]
+                    rtt = utils.get_RTT_value(p, packet)
+                    self.rtt_packets.append(rtt)
+                except KeyError:
+                    pass
+
     # Checks if FIN flag was set at any point in the connection
     def is_connection_finished(self):
         return self.flags["FIN"] > 0
@@ -107,6 +140,8 @@ class Connection:
     # Calculates the total connection time
     # returns a 3-tuple, start time, end time, and total time
     def get_connection_time(self):
+        if self.end_time == float('-inf'):
+            self.end_time = self.packets[len(self.packets) - 1].timestamp
         return self.start_time, self.end_time, self.end_time - self.start_time
 
     # returns number of packets sent by src
@@ -122,6 +157,9 @@ class Connection:
 
     def get_dst_bytes_total(self):
         return self.bytes_sent[self.address[2]]
+
+    def get_min_rtt(self):
+        return min(self.rtt_packets)
 
     def get_num_bytes(self):
         return self.bytes_sent[self.address[0]] + self.bytes_sent[self.address[2]]

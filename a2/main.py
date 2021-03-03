@@ -38,9 +38,6 @@ def main():
             packets[packet_num].TCP_header = load_tcp_header(data)
             check_connection(packets[packet_num], connections)
         except struct.error as e:
-            print(connections[5457998686].get_num_packets())
-            print(connections[5457998686].get_src_packet_total())
-            print(connections[5457998686].get_dst_packet_total())
             break
 
     connection_details(connections)
@@ -91,9 +88,6 @@ def load_packet_header(packet_num, data, time, micro):
     packet.packet_size_set(orig_len)
     packet.buffer = data
 
-    # print("TIME: ", packet.timestamp)
-    # print("INCL_LEN: ", packet.incl_len)
-    # print("SIZE: ", packet.size)
     return packet
 
 
@@ -169,6 +163,7 @@ def connection_details(connections):
     min_packets = float('inf')
     mean_packets = 0
     max_packets = float('-inf')
+    min_rtt = float('inf')
     min_window = float('inf')
     mean_window = 0
     max_window = float('-inf')
@@ -186,6 +181,8 @@ def connection_details(connections):
             min_packets = min(conn.get_num_packets(), min_packets)
             mean_packets += conn.get_num_packets()
             max_packets = max(conn.get_num_packets(), max_packets)
+            # RTT
+            min_rtt = min(conn.get_min_rtt(), min_rtt)
             # WINDOW SIZE
             min_window = min(conn.min_window, min_window)
             mean_window += conn.total_window
@@ -212,6 +209,7 @@ def connection_details(connections):
         print("Number of data bytes sent from Source to Destination: ", conn.get_src_bytes_total())
         print("Number of data bytes sent from Destination to Source: ", conn.get_dst_bytes_total())
         print("Number of bytes sent: ", conn.get_num_bytes())
+        print("RTT: ", conn.rtt_packets)
         inc += 1
 
     print("GENERAL")
@@ -226,6 +224,8 @@ def connection_details(connections):
     print("Minimum number of packets sent/received: ", min_packets)
     print("Mean number of packets sent/received: ", float(mean_packets/complete_connections))
     print("Maximum number of packets sent/received: ", max_packets)
+    print("")
+    print("Min RTT: ", min_rtt)
     print("")
     print("Minimum receive window size including sent/received: ", str(min_window) + " bytes")
     print("Mean receive window size including sent/received: %2f" % float(mean_window/total_packets), "bytes")

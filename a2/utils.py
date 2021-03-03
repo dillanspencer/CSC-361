@@ -270,13 +270,21 @@ class packet:
         size = struct.unpack('I', length)[0]
         self.incl_len = size
 
-    def get_RTT_value(self, p):
-        rtt = p.timestamp - self.timestamp
-        self.RTT_value = round(rtt, 8)
+    def get_payload(self):
+        ip_len = self.IP_header.ip_header_len
+        eth_len = 14
+        tcp_offset = self.TCP_header.data_offset
+        return self.incl_len - ip_len - eth_len - tcp_offset
 
 
 # Utils Functions
 def pack_id(buffer):
     src_ip, src_port, dst_ip, dst_port = buffer
-    key = struct.unpack("!I", socket.inet_aton(src_ip))[0] + struct.unpack("!I", socket.inet_aton(dst_ip))[0] + src_port + dst_port
+    key = struct.unpack("!I", socket.inet_aton(src_ip))[0] + struct.unpack("!I", socket.inet_aton(dst_ip))[
+        0] + src_port + dst_port
     return key
+
+
+def get_RTT_value(p, other):
+    rtt = other.timestamp - p.timestamp
+    return round(rtt, 8)
