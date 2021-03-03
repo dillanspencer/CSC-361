@@ -38,9 +38,6 @@
 <!-- ABOUT THE PROJECT -->
 ## How To Run The Program
 
-
-Here's a blank template to get started:
-
 1. Python
  ```sh
  python main.py filename.cap
@@ -86,6 +83,6 @@ For your final submission of your assignment, you are required to submit your so
 
 Dillan Spenncer - [@dillan.spencer](https://www.instagram.com/dillan.spencer/) - dillan.spencer08@gmail.com
 
-Project Link: [https://github.com/github_username/repo_name](https://github.com/DillanSpencer/CSC-361/a2)
+Project Link: [https://github.com/DillanSpencer/CSC-361/a2](https://github.com/DillanSpencer/CSC-361/a2)
 
 
