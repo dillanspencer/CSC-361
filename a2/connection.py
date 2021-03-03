@@ -13,6 +13,7 @@ class Connection:
     total_window = None
     min_window = None
     max_window = None
+    rtt_values = None
     ID = None
 
     def __init__(self, src_ip, src_port, dst_ip, dst_port):
@@ -28,6 +29,7 @@ class Connection:
         self.total_window = 0
         self.min_window = float("inf")
         self.max_window = float("-inf")
+        self.rtt_values = []
 
     # Adds packet to list
     # Checks packet flags and handles connection status
@@ -92,6 +94,30 @@ class Connection:
             self.state += "/R" + str(rst)
         return self.state
 
+    def calculate_rtt(self):
+        for src in self.packets:
+            if src.IP_header.src_ip is not self.address[0]:
+                continue
+            ip_len = src.IP_header.ip_header_len
+            tcp_offset = src.TCP_header.data_offset
+            payload = src.incl_len - ip_len - tcp_offset - 14
+            src_seq = src.TCP_header.seq_num
+            src_flags = src.TCP_header.flags
+            for dst in self.packets:
+                if src is dst:
+                    continue
+                ack = dst.TCP_header.ack_num
+                if payload > 0:
+                    if ack == src_seq + payload:
+                        rtt = utils.get_RTT_value(src, dst)
+                        self.rtt_values.append(rtt)
+                elif payload == 0:
+                    if src_seq + payload + 1 == ack:
+                        if src_flags["SYN"] == 1 or src_flags["FIN"] == 1:
+                            rtt = utils.get_RTT_value(src, dst)
+                            self.rtt_values.append(rtt)
+        return self.rtt_values
+
     # returns if this is a complete connection
     def is_complete(self):
         return self.flags["SYN"] > 0 and self.flags["FIN"] > 0
@@ -125,8 +151,8 @@ class Connection:
     def get_dst_bytes_total(self):
         return self.bytes_sent[self.address[2]]
 
-    def get_min_rtt(self):
-        return min(self.rtt_packets)
+    def get_num_rtt_pairs(self):
+        return len(self.rtt_values)
 
     def get_num_bytes(self):
         return self.bytes_sent[self.address[0]] + self.bytes_sent[self.address[2]]
