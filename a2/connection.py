@@ -1,3 +1,7 @@
+# CSC 361 Programming Assignment 2
+# Dillan Spencer
+# V00914254
+
 import utils
 
 
@@ -94,8 +98,12 @@ class Connection:
             self.state += "/R"
         return self.state
 
+    # Calculates RTT between SRC and DST
+    # Matches packets from SRC with its ACK packet from DST
+    # Returns a list of all rtt times for this connection
     def calculate_rtt(self):
         for src in self.packets:
+            # Check if packet is from SRC
             if src.IP_header.src_ip != self.address[0]:
                 continue
             ip_len = src.IP_header.ip_header_len
@@ -104,8 +112,8 @@ class Connection:
             src_seq = src.TCP_header.seq_num
             src_flags = src.TCP_header.flags
             for dst in self.packets:
+                # Check if packet is from DST
                 if dst.IP_header.src_ip != self.address[2]:
-                    print(dst.IP_header.src_ip, self.address[2])
                     continue
                 ack = dst.TCP_header.ack_num
                 if payload > 0:
@@ -148,17 +156,21 @@ class Connection:
     def get_dst_packet_total(self):
         return self.packets_sent[self.address[2]]
 
+    # returns total bytes sent by src
     def get_src_bytes_total(self):
         return self.bytes_sent[self.address[0]]
 
+    # returns total bytes sent by dst
     def get_dst_bytes_total(self):
         return self.bytes_sent[self.address[2]]
 
-    def get_num_rtt_pairs(self):
-        return len(self.rtt_values)
-
+    # returns total number of bytes sent in connection
     def get_num_bytes(self):
         return self.bytes_sent[self.address[0]] + self.bytes_sent[self.address[2]]
+
+    # returns number of rtt pairs in connection
+    def get_num_rtt_pairs(self):
+        return len(self.rtt_values)
 
     # returns total number of packets sent
     def get_num_packets(self):

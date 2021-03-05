@@ -277,7 +277,9 @@ class packet:
         return self.incl_len - ip_len - eth_len - tcp_offset
 
 
-# Utils Functions
+# Utils Functions ---------------
+
+# Creates a unique id based on Connections 4-tuple
 def pack_id(buffer):
     src_ip, src_port, dst_ip, dst_port = buffer
     key = struct.unpack("!I", socket.inet_aton(src_ip))[0] + struct.unpack("!I", socket.inet_aton(dst_ip))[
@@ -285,6 +287,7 @@ def pack_id(buffer):
     return key
 
 
+# Returns rtt time between two packets
 def get_RTT_value(p, other):
     rtt = other.timestamp - p.timestamp
     return round(rtt, 8)

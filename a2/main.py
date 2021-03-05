@@ -1,3 +1,7 @@
+# CSC 361 Programming Assignment 2
+# Dillan Spencer
+# V00914254
+
 import sys
 import utils
 import connection
@@ -5,21 +9,26 @@ import struct
 
 
 def main():
+    # Read CAP file
     file_name = sys.argv[1]
     file = open(file_name, "rb")
+
+    # Lists for packets and connections
     packets = []
     connections = {}
 
+    # Read General Header
     data = file.read(24)
     gen_header = load_general_header(data)
 
+    # Read first packet header
     data = file.read(16)
     orig_time = data[0:4]
     orig_micro = data[4:8]
     packet_num = 0
-
     packets.append(load_packet_header(packet_num, data, orig_time, orig_micro))
 
+    # Read first packet data
     data = file.read(packets[packet_num].incl_len)
     packets[packet_num].Ethernet_header = load_ethernet_header(data)
     packets[packet_num].IP_header = load_ipv4_header(data)
@@ -40,9 +49,13 @@ def main():
         except struct.error as e:
             break
 
+    # Output deliverables
     connection_details(connections)
 
 
+# Takes a packet and checks what connection it belongs to
+# If no connection is found, a new connection is created
+# and packet is added to connection.
 def check_connection(packet, connections):
     src_ip = packet.IP_header.src_ip
     dst_ip = packet.IP_header.dst_ip
@@ -63,6 +76,8 @@ def check_connection(packet, connections):
         connections[ID].add_packet(packet)
 
 
+# Loads data into general header object
+# Returns general header
 def load_general_header(data):
     gen_header = utils.General_Header()
     gen_header.set_magic_number(data[0:4])
@@ -75,6 +90,8 @@ def load_general_header(data):
     return gen_header
 
 
+# Loads data into packet header object
+# Returns packet header
 def load_packet_header(packet_num, data, time, micro):
     packet = utils.packet()
     buff1 = data[0:4]
@@ -91,17 +108,18 @@ def load_packet_header(packet_num, data, time, micro):
     return packet
 
 
+# Loads data into ethernet header object
+# Returns ethernet header
 def load_ethernet_header(data):
     header = utils.Ethernet_Header()
     header.set_dest_addr(data[0:6])
     header.set_src_addr(data[6:12])
     header.set_type(data[12:14])
-    # print("Destination MAC: ", header.dest_addr)
-    # print("Source MAC: ", header.src_addr)
-    # print("Eth Type: ", header.type)
     return header
 
 
+# Loads data into IPV4 header object
+# Returns IPV4 header
 def load_ipv4_header(data):
     header = utils.IP_Header()
     src = data[26:30]
@@ -112,15 +130,11 @@ def load_ipv4_header(data):
     header.get_IP(src, dest)
     header.get_total_len(total_len)
     header.get_header_len(header_len)
-
-    # print("SRC: ", header.src_ip)
-    # print("DEST: ", header.dst_ip)
-    # print("Total Length: ", header.total_len)
-    # print("Header Length: ", header.ip_header_len)
-
     return header
 
 
+# Loads data into TCP header object
+# Returns TCP header
 def load_tcp_header(data):
     header = utils.TCP_Header()
     src_port = data[34:36]
@@ -140,17 +154,10 @@ def load_tcp_header(data):
     header.get_window_size(w1, w2)
     header.get_flags(flags)
 
-    # print("SRC: ", header.src_port)
-    # print("DEST: ", header.dst_port)
-    # print("SEQ: ", header.seq_num)
-    # print("ACK: ", header.ack_num)
-    # print("DATA OFFSET: ", header.data_offset)
-    # print("WINDOW SIZE: ", header.window_size)
-    # print("FLAGS: ", header.flags)
-
     return header
 
 
+# Outputs deliverables of connections
 def connection_details(connections):
     inc = 1
     complete_connections = 0
@@ -225,20 +232,20 @@ def connection_details(connections):
     print("Reset Connections: ", reset_connections)
     print("Open Connections: ", open_connections)
     print("Min Connection time: %2f" % min_time)
-    print("Mean Connection time: %2f" % float(mean_time/complete_connections))
+    print("Mean Connection time: %2f" % float(mean_time / complete_connections))
     print("Max Connection time: %2f" % max_time)
     print("")
     print("Minimum number of packets sent/received: ", min_packets)
-    print("Mean number of packets sent/received: ", float(mean_packets/complete_connections))
+    print("Mean number of packets sent/received: ", float(mean_packets / complete_connections))
     print("Maximum number of packets sent/received: ", max_packets)
     print("")
     print("Min RTT: ", min_rtt)
-    print("Mean RTT: ", round(mean_rtt/total_rtt, 6))
+    print("Mean RTT: ", round(mean_rtt / total_rtt, 6))
     print("Max RTT: ", max_rtt)
     print("NUM RTT PAIRS ", total_rtt)
     print("")
     print("Minimum receive window size including sent/received: ", str(min_window) + " bytes")
-    print("Mean receive window size including sent/received: %2f " % float(mean_window/total_packets), "bytes")
+    print("Mean receive window size including sent/received: %2f " % float(mean_window / total_packets), "bytes")
     print("Maximum receive window size including sent/received: ", str(max_window) + " bytes")
 
 
