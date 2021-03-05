@@ -164,6 +164,8 @@ def connection_details(connections):
     mean_packets = 0
     max_packets = float('-inf')
     min_rtt = float('inf')
+    mean_rtt = 0
+    max_rtt = float('-inf')
     total_rtt = 0
     min_window = float('inf')
     mean_window = 0
@@ -185,6 +187,8 @@ def connection_details(connections):
             # RTT
             rtt = conn.calculate_rtt()
             min_rtt = min(min(rtt), min_rtt)
+            mean_rtt += sum(rtt)
+            max_rtt = max(max(rtt), max_rtt)
             total_rtt += conn.get_num_rtt_pairs()
             # WINDOW SIZE
             min_window = min(conn.min_window, min_window)
@@ -229,6 +233,8 @@ def connection_details(connections):
     print("Maximum number of packets sent/received: ", max_packets)
     print("")
     print("Min RTT: ", min_rtt)
+    print("Mean RTT: ", round(mean_rtt/total_rtt, 6))
+    print("Max RTT: ", max_rtt)
     print("NUM RTT PAIRS ", total_rtt)
     print("")
     print("Minimum receive window size including sent/received: ", str(min_window) + " bytes")
