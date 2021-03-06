@@ -272,9 +272,9 @@ class packet:
 
     def get_payload(self):
         ip_len = self.IP_header.ip_header_len
-        eth_len = 14
+        ip_total = self.IP_header.total_len
         tcp_offset = self.TCP_header.data_offset
-        return self.incl_len - ip_len - eth_len - tcp_offset
+        return ip_total - ip_len - tcp_offset
 
 
 # Utils Functions ---------------

@@ -1,4 +1,5 @@
 # CSC 361 Programming Assignment 2
+# CSC 361 Programming Assignment 2
 # Dillan Spencer
 # V00914254
 
@@ -63,10 +64,10 @@ class Connection:
         key = packet.IP_header.src_ip
         try:
             self.packets_sent[key] += 1
-            self.bytes_sent[key] += packet.size
+            self.bytes_sent[key] += packet.get_payload()
         except KeyError:
             self.packets_sent[key] = 1
-            self.bytes_sent[key] = packet.size
+            self.bytes_sent[key] = packet.get_payload()
 
     # Calculates the min and max time of connection
     def check_packet_time(self, packet):
