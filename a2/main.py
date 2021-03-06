@@ -46,7 +46,7 @@ def main():
             packets[packet_num].IP_header = load_ipv4_header(data)
             packets[packet_num].TCP_header = load_tcp_header(data)
             check_connection(packets[packet_num], connections)
-        except struct.error as e:
+        except struct.error:
             break
 
     # Output deliverables
@@ -63,10 +63,6 @@ def check_connection(packet, connections):
     dst_port = packet.TCP_header.dst_port
     buffer = (src_ip, src_port, dst_ip, dst_port)
     ID = utils.pack_id(buffer)
-
-    # print("SRC IP: ", src_ip, "SRC PORT: ", src_port)
-    # print("DST IP: ", dst_ip, "DST PORT: ", dst_port)
-    # print("ID: ", ID)
 
     if ID not in connections:
         c = connection.Connection(src_ip, src_port, dst_ip, dst_port)

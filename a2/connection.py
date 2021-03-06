@@ -1,5 +1,4 @@
 # CSC 361 Programming Assignment 2
-# CSC 361 Programming Assignment 2
 # Dillan Spencer
 # V00914254
 
