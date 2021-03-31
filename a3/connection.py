@@ -37,7 +37,10 @@ class Connection:
 
     # Adds packet to list
     # Checks packet flags and handles connection status
+    # We only want UDP and ICMP packets so filter out the rest
     def add_packet(self, packet):
+        print(packet.IP_header.protocol)
+        print(packet.IP_header.icmp_type)
         self.packets.append(packet)
         self.check_flags(packet)
         self.check_packet_sent(packet)
@@ -154,7 +157,10 @@ class Connection:
 
     # return number of packets sent by dst
     def get_dst_packet_total(self):
-        return self.packets_sent[self.address[2]]
+        try:
+            return self.packets_sent[self.address[2]]
+        except KeyError:
+            return 0
 
     # returns total bytes sent by src
     def get_src_bytes_total(self):
@@ -162,11 +168,17 @@ class Connection:
 
     # returns total bytes sent by dst
     def get_dst_bytes_total(self):
-        return self.bytes_sent[self.address[2]]
+        try:
+            return self.bytes_sent[self.address[2]]
+        except KeyError:
+            return 0
 
     # returns total number of bytes sent in connection
     def get_num_bytes(self):
-        return self.bytes_sent[self.address[0]] + self.bytes_sent[self.address[2]]
+        try:
+            return self.bytes_sent[self.address[0]] + self.bytes_sent[self.address[2]]
+        except KeyError:
+            return 0
 
     # returns number of rtt pairs in connection
     def get_num_rtt_pairs(self):

@@ -4,6 +4,13 @@
 
 import struct
 import socket
+from enum import Enum
+
+
+class Protocol(Enum):
+    TCP = 6
+    UDP = 17
+    ICMP = 1
 
 
 class IP_Header:
@@ -11,12 +18,24 @@ class IP_Header:
     dst_ip = None  # <type 'str'>
     ip_header_len = None  # <type 'int'>
     total_len = None  # <type 'int'>
+    protocol = None
+
+    # ICMP attributes
+    icmp_type = None
+    icmp_code = None
+    checksum = None
+    icmp_data = None
 
     def __init__(self):
         self.src_ip = None
         self.dst_ip = None
         self.ip_header_len = 0
         self.total_len = 0
+        self.protocol = 0
+        self.icmp_type = None
+        self.icmp_code = None
+        self.icmp_data = None
+        self.checksum = None
 
     def ip_set(self, src_ip, dst_ip):
         self.src_ip = src_ip
@@ -47,6 +66,26 @@ class IP_Header:
         num4 = (buffer[1] & 15)
         length = num1 + num2 + num3 + num4
         self.total_len_set(length)
+
+    def get_protocol(self, buffer):
+        value = struct.unpack('B', buffer)[0]
+        self.protocol = value
+
+    def get_icmp_type(self, buffer):
+        value = struct.unpack('B', buffer)[0]
+        self.icmp_type = value
+
+    def get_icmp_code(self, buffer):
+        value = struct.unpack('B', buffer)[0]
+        self.icmp_code = value
+
+    def get_checksum(self, buffer):
+        value = struct.unpack('BB', buffer)[0]
+        self.checksum = value
+
+    def get_icmp_data(self, buffer):
+        value = struct.unpack('BBBB', buffer)[0]
+        self.icmp_data = value
 
 
 class TCP_Header:

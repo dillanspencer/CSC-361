@@ -4,6 +4,7 @@
 
 import sys
 import utils
+from utils import Protocol
 import connection
 import struct
 
@@ -35,6 +36,10 @@ def main():
     packets[packet_num].TCP_header = load_tcp_header(data)
     check_connection(packets[packet_num], connections)
 
+    # Source and Destination Nodes
+    root_node = packets[packet_num].IP_header.src_ip
+    dest_node = packets[packet_num].IP_header.dst_ip
+
     while True:
         try:
             data = file.read(16)
@@ -50,7 +55,8 @@ def main():
             break
 
     # Output deliverables
-    connection_details(connections)
+    connection_details()
+    file.close()
 
 
 # Takes a packet and checks what connection it belongs to
@@ -64,6 +70,7 @@ def check_connection(packet, connections):
     buffer = (src_ip, src_port, dst_ip, dst_port)
     ID = utils.pack_id(buffer)
 
+    # Add connection
     if ID not in connections:
         c = connection.Connection(src_ip, src_port, dst_ip, dst_port)
         c.add_packet(packet)
@@ -122,10 +129,25 @@ def load_ipv4_header(data):
     dest = data[30:34]
     total_len = data[16:18]
     header_len = data[14:15]
+    protocol = data[23:24]
 
     header.get_IP(src, dest)
     header.get_total_len(total_len)
     header.get_header_len(header_len)
+    header.get_protocol(protocol)
+
+    # Check if packet is ICMP and load data from header
+    if header.protocol == 1:
+        icmp_type = data[34:35]
+        icmp_code = data[35:36]
+        checksum = data[36:38]
+        icmp_data = data[38:42]
+
+        header.get_icmp_type(icmp_type)
+        header.get_icmp_code(icmp_code)
+        header.get_checksum(checksum)
+        header.get_icmp_data(icmp_data)
+
     return header
 
 
@@ -154,101 +176,8 @@ def load_tcp_header(data):
 
 
 # Outputs deliverables of connections
-def connection_details(connections):
-    inc = 1
-    complete_connections = 0
-    reset_connections = 0
-    open_connections = 0
-    total_packets = 0
-    min_time = float('inf')
-    mean_time = 0
-    max_time = float('-inf')
-    min_packets = float('inf')
-    mean_packets = 0
-    max_packets = float('-inf')
-    min_rtt = float('inf')
-    mean_rtt = 0
-    max_rtt = float('-inf')
-    total_rtt = 0
-    min_window = float('inf')
-    mean_window = 0
-    max_window = float('-inf')
-
-    # Output -----------------------
-    print("Output For Assignment 2: \n")
-    print("A) Total Number of connections: ", len(connections))
-    print("------------------------")
-    print("B) Connection Details:")
-    for conn in connections.values():
-        # STATISTICS
-        start_time, end_time, total_time = conn.get_connection_time()
-        if conn.is_complete():
-            complete_connections += 1
-            total_packets += conn.get_num_packets()
-            # TIME
-            min_time = min(total_time, min_time)
-            mean_time += total_time
-            max_time = max(total_time, max_time)
-            # PACKETS
-            min_packets = min(conn.get_num_packets(), min_packets)
-            mean_packets += conn.get_num_packets()
-            max_packets = max(conn.get_num_packets(), max_packets)
-            # RTT
-            rtt = conn.calculate_rtt()
-            min_rtt = min(min(rtt), min_rtt)
-            mean_rtt += sum(rtt)
-            max_rtt = max(max(rtt), max_rtt)
-            total_rtt += conn.get_num_rtt_pairs()
-            # WINDOW SIZE
-            min_window = min(conn.min_window, min_window)
-            mean_window += conn.total_window
-            max_window = max(conn.max_window, max_window)
-        if conn.is_reset():
-            reset_connections += 1
-        if conn.is_open():
-            open_connections += 1
-
-        # CONNECTION DETAILS OUTPUT
-        print("Connection: ", inc)
-        print("Source Address: ", conn.address[0])
-        print("Source Port: ", conn.address[1])
-        print("Destination Address: ", conn.address[2])
-        print("Destination Port: ", conn.address[3])
-        print("Status: ", conn.check_connection_state())
-        if conn.is_complete():
-            print("Start Time: ", start_time)
-            print("End Time: ", end_time)
-            print("Duration: ", round(total_time, 6))
-            print("Number of packets sent from Source to Destination: ", conn.get_src_packet_total())
-            print("Number of packets sent from Destination to Source: ", conn.get_dst_packet_total())
-            print("Total number of packets: ", conn.get_num_packets())
-            print("Number of data bytes sent from Source to Destination: ", conn.get_src_bytes_total())
-            print("Number of data bytes sent from Destination to Source: ", conn.get_dst_bytes_total())
-            print("Total number of bytes sent: ", conn.get_num_bytes())
-        print("-------------------------")
-        inc += 1
-
-    print("C) GENERAL\n")
-    print("Total number of complete TCP connections: ", complete_connections)
-    print("Number of reset TCP connections: ", reset_connections)
-    print("Number of TCP connections that were still open when the trace capture ended: ", open_connections)
-    print("-------------------------")
-    print("D) Complete TCP connections:\n")
-    print("Minimum time duration: %2f" % min_time)
-    print("Mean time duration: %2f" % float(mean_time / complete_connections))
-    print("Maximum time duration: %2f" % max_time)
-    print("")
-    print("Minimum RTT value: ", min_rtt)
-    print("Mean RTT value: ", round(mean_rtt / total_rtt, 6))
-    print("Maximum RTT value: ", max_rtt)
-    print("")
-    print("Minimum number of packets sent/received: ", min_packets)
-    print("Mean number of packets sent/received: ", float(mean_packets / complete_connections))
-    print("Maximum number of packets sent/received: ", max_packets)
-    print("")
-    print("Minimum receive window size including sent/received: ", str(min_window) + " bytes")
-    print("Mean receive window size including sent/received: %2f " % float(mean_window / total_packets), "bytes")
-    print("Maximum receive window size including sent/received: ", str(max_window) + " bytes")
+def connection_details():
+    pass
 
 
 if __name__ == '__main__':
