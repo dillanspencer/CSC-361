@@ -13,6 +13,13 @@ class Protocol(Enum):
     ICMP = 1
 
 
+class ICMP(Enum):
+    ECHO_REPLY = 0
+    UNREACHABLE = 3
+    ECHO_PING = 8
+    TIME_EXCEEDED = 11
+
+
 class IP_Header:
     src_ip = None  # <type 'str'>
     dst_ip = None  # <type 'str'>
@@ -31,6 +38,7 @@ class IP_Header:
         self.dst_ip = None
         self.ip_header_len = 0
         self.total_len = 0
+        self.ttl = 0
         self.protocol = 0
         self.icmp_type = None
         self.icmp_code = None
@@ -66,6 +74,10 @@ class IP_Header:
         num4 = (buffer[1] & 15)
         length = num1 + num2 + num3 + num4
         self.total_len_set(length)
+
+    def get_ttl(self, buffer):
+        value = struct.unpack('B', buffer)[0]
+        self.ttl = value
 
     def get_protocol(self, buffer):
         value = struct.unpack('B', buffer)[0]
@@ -321,8 +333,7 @@ class packet:
 # Creates a unique id based on Connections 4-tuple
 def pack_id(buffer):
     src_ip, src_port, dst_ip, dst_port = buffer
-    key = struct.unpack("!I", socket.inet_aton(src_ip))[0] + struct.unpack("!I", socket.inet_aton(dst_ip))[
-        0] + src_port + dst_port
+    key = struct.unpack("!I", socket.inet_aton(src_ip))[0] + struct.unpack("!I", socket.inet_aton(dst_ip))[0]
     return key
 
 

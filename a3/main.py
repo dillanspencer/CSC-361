@@ -3,9 +3,12 @@
 # V00914254
 
 import sys
+from operator import attrgetter
+
 import utils
 from utils import Protocol
 import connection
+from connection import ConnectionType
 import struct
 
 
@@ -34,11 +37,12 @@ def main():
     packets[packet_num].Ethernet_header = load_ethernet_header(data)
     packets[packet_num].IP_header = load_ipv4_header(data)
     packets[packet_num].TCP_header = load_tcp_header(data)
-    check_connection(packets[packet_num], connections)
 
     # Source and Destination Nodes
     root_node = packets[packet_num].IP_header.src_ip
     dest_node = packets[packet_num].IP_header.dst_ip
+    root = (root_node, dest_node)
+    check_connection(root, packets[packet_num], connections)
 
     while True:
         try:
@@ -50,19 +54,19 @@ def main():
             packets[packet_num].Ethernet_header = load_ethernet_header(data)
             packets[packet_num].IP_header = load_ipv4_header(data)
             packets[packet_num].TCP_header = load_tcp_header(data)
-            check_connection(packets[packet_num], connections)
+            check_connection(root, packets[packet_num], connections)
         except struct.error:
             break
 
     # Output deliverables
-    connection_details()
+    connection_details(connections)
     file.close()
 
 
 # Takes a packet and checks what connection it belongs to
 # If no connection is found, a new connection is created
 # and packet is added to connection.
-def check_connection(packet, connections):
+def check_connection(root, packet, connections):
     src_ip = packet.IP_header.src_ip
     dst_ip = packet.IP_header.dst_ip
     src_port = packet.TCP_header.src_port
@@ -72,7 +76,7 @@ def check_connection(packet, connections):
 
     # Add connection
     if ID not in connections:
-        c = connection.Connection(src_ip, src_port, dst_ip, dst_port)
+        c = connection.Connection(root, src_ip, src_port, dst_ip, dst_port)
         c.add_packet(packet)
         connections[ID] = c
     else:
@@ -129,11 +133,13 @@ def load_ipv4_header(data):
     dest = data[30:34]
     total_len = data[16:18]
     header_len = data[14:15]
+    ttl = data[22:23]
     protocol = data[23:24]
 
     header.get_IP(src, dest)
     header.get_total_len(total_len)
     header.get_header_len(header_len)
+    header.get_ttl(ttl)
     header.get_protocol(protocol)
 
     # Check if packet is ICMP and load data from header
@@ -176,8 +182,11 @@ def load_tcp_header(data):
 
 
 # Outputs deliverables of connections
-def connection_details():
-    pass
+def connection_details(connections):
+    sorted_connections = sorted(connections.items(), key=lambda x: x[1].ttl, reverse=False)
+    for conn in sorted_connections:
+        if conn[1].get_connection_type() is ConnectionType.INTERMEDIATE:
+            print(conn[1].address[0], conn[1].ttl)
 
 
 if __name__ == '__main__':

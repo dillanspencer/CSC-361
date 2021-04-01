@@ -2,10 +2,20 @@
 # Dillan Spencer
 # V00914254
 
+from enum import Enum
 import utils
+from utils import Protocol
+
+
+class ConnectionType(Enum):
+    ROOT = 0
+    INTERMEDIATE = 1
+    OTHER = 2
 
 
 class Connection:
+    root = None
+    connection_type = None
     address = None
     packets = None
     flags = None
@@ -18,9 +28,11 @@ class Connection:
     min_window = None
     max_window = None
     rtt_values = None
+    icmp_flag = False
     ID = None
 
-    def __init__(self, src_ip, src_port, dst_ip, dst_port):
+    def __init__(self, root, src_ip, src_port, dst_ip, dst_port):
+        self.root = root
         self.address = (src_ip, src_port, dst_ip, dst_port)
         self.packets = []
         self.ID = utils.pack_id(self.address)
@@ -28,6 +40,7 @@ class Connection:
         self.bytes_sent = {}
         self.flags = {}
         self.state = "S0F0"
+        self.ttl = float("inf")
         self.start_time = float("inf")
         self.end_time = float("-inf")
         self.total_window = 0
@@ -39,13 +52,29 @@ class Connection:
     # Checks packet flags and handles connection status
     # We only want UDP and ICMP packets so filter out the rest
     def add_packet(self, packet):
-        print(packet.IP_header.protocol)
-        print(packet.IP_header.icmp_type)
-        self.packets.append(packet)
-        self.check_flags(packet)
-        self.check_packet_sent(packet)
-        self.check_packet_time(packet)
-        self.check_window_size(packet)
+        # if packet is other than UDP or ICMP then don't add it
+        if packet.IP_header.protocol == Protocol.UDP.value or packet.IP_header.protocol == Protocol.ICMP.value:
+            self.packets.append(packet)
+            self.check_icmp(packet)
+            self.check_connection_type()
+
+            if self.icmp_flag:
+                self.check_hops(packet)
+            # self.check_flags(packet)
+            # self.check_packet_sent(packet)
+            # self.check_packet_time(packet)
+            # self.check_window_size(packet)
+
+    # Checks if the packet was sent or received from the source node
+    # or from the ultimate destination. Will also find if the connection
+    # is from an intermediate router.
+    def check_connection_type(self):
+        if self.root[0] in self.address and self.root[1] in self.address:
+            self.connection_type = ConnectionType.ROOT
+        elif self.root[0] in self.address and self.root[1] not in self.address and self.icmp_flag:
+            self.connection_type = ConnectionType.INTERMEDIATE
+        else:
+            self.connection_type = ConnectionType.OTHER
 
     # Checks all bits of flags and increment the flag dictionary
     def check_flags(self, packet):
@@ -83,6 +112,10 @@ class Connection:
         self.total_window += packet.TCP_header.window_size
         self.min_window = min(packet.TCP_header.window_size, self.min_window)
         self.max_window = max(packet.TCP_header.window_size, self.max_window)
+
+    def check_icmp(self, packet):
+        if packet.IP_header.protocol == Protocol.ICMP.value:
+            self.icmp_flag = True
 
     # Checks if FIN flag was set at any point in the connection
     def is_connection_finished(self):
@@ -131,6 +164,10 @@ class Connection:
                             self.rtt_values.append(rtt)
                             break
         return self.rtt_values
+
+    def check_hops(self, packet):
+        data = packet.IP_header.icmp_data
+        ttl = data[8]
 
     # returns if this is a complete connection
     def is_complete(self):
@@ -187,3 +224,7 @@ class Connection:
     # returns total number of packets sent
     def get_num_packets(self):
         return len(self.packets)
+
+    # returns connection type of the connection
+    def get_connection_type(self):
+        return self.connection_type
