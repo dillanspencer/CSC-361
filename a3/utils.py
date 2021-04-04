@@ -286,6 +286,7 @@ class packet:
     buffer = None
     size = 0
     incl_len = 0
+    parent = None
 
     def __init__(self):
         self.Ethernet_header = Ethernet_Header()
@@ -299,14 +300,15 @@ class packet:
         self.buffer = None
         self.size = 0
         self.incl_len = 16
+        self.parent = None
 
     def timestamp_set(self, buffer1, buffer2, orig_time, micro):
         seconds = struct.unpack('I', buffer1)[0]
         microseconds = struct.unpack('<I', buffer2)[0]
         time_sec = struct.unpack('I', orig_time)[0]
         time_micro = struct.unpack('<I', micro)[0]
-        time = time_sec + time_micro * 0.000001
-        self.timestamp = round(seconds + microseconds * 0.000001 - time, 6)
+        time = time_sec + time_micro * 0.000000001
+        self.timestamp = round(seconds + microseconds * 0.000000001 - time, 6)
         # print(self.timestamp, self.packet_No)
 
     def packet_No_set(self, number):
@@ -316,6 +318,9 @@ class packet:
     def packet_size_set(self, size):
         length = struct.unpack('I', size)[0]
         self.size = length
+
+    def packet_parent_set(self, parent):
+        self.parent = parent
 
     def packet_incl_len_set(self, length):
         size = struct.unpack('I', length)[0]

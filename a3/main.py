@@ -2,13 +2,12 @@
 # Dillan Spencer
 # V00914254
 
+import struct
 import sys
 
-import utils
-from utils import ICMP
 import connection
+import utils
 from connection import ConnectionType
-import struct
 
 
 def main():
@@ -169,6 +168,8 @@ def load_tcp_header(data):
 def connection_details(connections):
     sorted_connections = sorted(connections.items(), key=lambda x: x[1].get_hops(connections), reverse=False)
     root = [x[1].root for x in sorted_connections if x[1].get_connection_type() == ConnectionType.INTERMEDIATE]
+    headers = []
+
     print("The IP address of the Source Node: ", root[0][0])
     print("The IP address of the Ultimate Destination Node: ", root[0][1])
     print("The IP addresses of the Intermediate Nodes: ")
@@ -176,11 +177,32 @@ def connection_details(connections):
     already_printed = []
     count = 1
     for conn in sorted_connections:
-
+        head = [x.IP_header.protocol for x in conn[1].packets]
+        for x in head:
+            if x not in headers:
+                headers.append(x)
         if conn[1].get_connection_type() is ConnectionType.INTERMEDIATE and conn[1].address[0] not in already_printed:
             already_printed.append(conn[1].address[0])
             print("\trouter {0}:".format(count), conn[1].address[0])
             count += 1
+    print("\nThe values in the protocol field of IP headers:")
+    for h in sorted(headers):
+        print("\t{0}: {1}".format(h, utils.Protocol(h).name))
+
+    # RTT
+    rtt = {}
+    rtt_len = {}
+    for conn in sorted_connections:
+        if conn[1].get_connection_type() is ConnectionType.INTERMEDIATE:
+            if conn[1].address[0] not in rtt:
+                rtt[conn[1].address[0]] = conn[1].calculate_rtt() * 1000
+                rtt_len[conn[1].address[0]] = 1
+            else:
+                rtt[conn[1].address[0]] += conn[1].calculate_rtt() * 1000
+                rtt_len[conn[1].address[0]] += 1
+    for value in rtt:
+        rtt[value] /= rtt_len[value]
+        print("router: {0}, RTT: {1}".format(value, rtt[value]))
 
 
 if __name__ == '__main__':
