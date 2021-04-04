@@ -5,6 +5,7 @@
 from enum import Enum
 import utils
 from utils import Protocol
+from utils import ICMP
 
 
 class ConnectionType(Enum):
@@ -30,14 +31,16 @@ class Connection:
     rtt_values = None
     icmp_flag = False
     ID = None
+    parent_address = None
     parent_id = None
 
-    def __init__(self, root, src_ip, src_port, dst_ip, dst_port):
-        self.root = root
+    def __init__(self, src_ip, src_port, dst_ip, dst_port):
+        self.root = None
         self.address = (src_ip, src_port, dst_ip, dst_port)
         self.packets = []
         self.ID = utils.pack_id(self.address)
         self.parent_id = None
+        self.parent_address = None
         self.packets_sent = {}
         self.bytes_sent = {}
         self.flags = {}
@@ -58,10 +61,9 @@ class Connection:
         if packet.IP_header.protocol == Protocol.UDP.value or packet.IP_header.protocol == Protocol.ICMP.value:
             self.packets.append(packet)
             self.check_icmp(packet)
-            self.check_connection_type()
-
-            if packet.IP_header.protocol == Protocol.ICMP.value:
+            if packet.IP_header.protocol == Protocol.ICMP.value and packet.IP_header.icmp_type in ICMP.ALL.value:
                 self.check_hops(packet)
+            self.check_connection_type()
 
             # self.check_flags(packet)
             # self.check_packet_sent(packet)
@@ -72,6 +74,8 @@ class Connection:
     # or from the ultimate destination. Will also find if the connection
     # is from an intermediate router.
     def check_connection_type(self):
+        if self.root is None:
+            return
         if self.root[0] in self.address and self.root[1] in self.address:
             self.connection_type = ConnectionType.ROOT
         elif self.root[0] in self.address and self.root[1] not in self.address and self.icmp_flag:
@@ -181,8 +185,7 @@ class Connection:
         trigger.TCP_header.get_src_port(src_port)
         trigger.TCP_header.get_dst_port(dst_port)
         trigger.IP_header.get_ttl(ttl)
-        print((trigger.IP_header.src_ip, trigger.IP_header.dst_ip, trigger.TCP_header.src_port,
-               trigger.TCP_header.dst_port))
+        self.root = (trigger.IP_header.src_ip, trigger.IP_header.dst_ip)
         self.parent_id = utils.pack_id((trigger.IP_header.src_ip, trigger.TCP_header.src_port, trigger.IP_header.dst_ip,
                                         trigger.TCP_header.dst_port))
         self.ttl = trigger.IP_header.ttl + 1

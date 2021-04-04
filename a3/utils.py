@@ -18,6 +18,7 @@ class ICMP(Enum):
     UNREACHABLE = 3
     ECHO_PING = 8
     TIME_EXCEEDED = 11
+    ALL = (0, 3, 8, 11)
 
 
 class IP_Header:
