@@ -30,12 +30,14 @@ class Connection:
     rtt_values = None
     icmp_flag = False
     ID = None
+    parent_id = None
 
     def __init__(self, root, src_ip, src_port, dst_ip, dst_port):
         self.root = root
         self.address = (src_ip, src_port, dst_ip, dst_port)
         self.packets = []
         self.ID = utils.pack_id(self.address)
+        self.parent_id = None
         self.packets_sent = {}
         self.bytes_sent = {}
         self.flags = {}
@@ -58,8 +60,9 @@ class Connection:
             self.check_icmp(packet)
             self.check_connection_type()
 
-            if self.icmp_flag:
+            if packet.IP_header.protocol == Protocol.ICMP.value:
                 self.check_hops(packet)
+
             # self.check_flags(packet)
             # self.check_packet_sent(packet)
             # self.check_packet_time(packet)
@@ -166,8 +169,29 @@ class Connection:
         return self.rtt_values
 
     def check_hops(self, packet):
+        trigger = utils.packet()
         data = packet.IP_header.icmp_data
-        ttl = data[8]
+        ttl = data[12:13]
+        src = data[16:20]
+        dst = data[20:24]
+        src_port = data[24:26]
+        dst_port = data[26:28]
+
+        trigger.IP_header.get_IP(src, dst)
+        trigger.TCP_header.get_src_port(src_port)
+        trigger.TCP_header.get_dst_port(dst_port)
+        trigger.IP_header.get_ttl(ttl)
+        print((trigger.IP_header.src_ip, trigger.IP_header.dst_ip, trigger.TCP_header.src_port,
+               trigger.TCP_header.dst_port))
+        self.parent_id = utils.pack_id((trigger.IP_header.src_ip, trigger.TCP_header.src_port, trigger.IP_header.dst_ip,
+                                        trigger.TCP_header.dst_port))
+        self.ttl = trigger.IP_header.ttl + 1
+
+    def get_hops(self, connections):
+        if self.connection_type != ConnectionType.INTERMEDIATE:
+            return 0
+        parent = connections[self.parent_id]
+        return parent.get_packet_number() + self.ttl
 
     # returns if this is a complete connection
     def is_complete(self):
@@ -180,6 +204,10 @@ class Connection:
     # returns if connection was still open when trace ended
     def is_open(self):
         return self.flags["SYN"] > 0 and self.flags["FIN"] == 0
+
+    # returns packet number for ttl
+    def get_packet_number(self):
+        return self.packets[0].packet_No
 
     # Calculates the total connection time
     # returns a 3-tuple, start time, end time, and total time

@@ -96,8 +96,7 @@ class IP_Header:
         self.checksum = value
 
     def get_icmp_data(self, buffer):
-        value = struct.unpack('BBBB', buffer)[0]
-        self.icmp_data = value
+        self.icmp_data = buffer
 
 
 class TCP_Header:
@@ -333,7 +332,7 @@ class packet:
 # Creates a unique id based on Connections 4-tuple
 def pack_id(buffer):
     src_ip, src_port, dst_ip, dst_port = buffer
-    key = struct.unpack("!I", socket.inet_aton(src_ip))[0] + struct.unpack("!I", socket.inet_aton(dst_ip))[0]
+    key = struct.unpack("!I", socket.inet_aton(src_ip))[0] + struct.unpack("!I", socket.inet_aton(dst_ip))[0] + src_port + dst_port
     return key
 
 

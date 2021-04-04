@@ -6,7 +6,6 @@ import sys
 from operator import attrgetter
 
 import utils
-from utils import Protocol
 import connection
 from connection import ConnectionType
 import struct
@@ -147,7 +146,7 @@ def load_ipv4_header(data):
         icmp_type = data[34:35]
         icmp_code = data[35:36]
         checksum = data[36:38]
-        icmp_data = data[38:42]
+        icmp_data = data[38:]
 
         header.get_icmp_type(icmp_type)
         header.get_icmp_code(icmp_code)
@@ -183,9 +182,11 @@ def load_tcp_header(data):
 
 # Outputs deliverables of connections
 def connection_details(connections):
-    sorted_connections = sorted(connections.items(), key=lambda x: x[1].ttl, reverse=False)
+    sorted_connections = sorted(connections.items(), key=lambda x: x[1].get_hops(connections), reverse=False)
+    already_printed = []
     for conn in sorted_connections:
-        if conn[1].get_connection_type() is ConnectionType.INTERMEDIATE:
+        if conn[1].get_connection_type() is ConnectionType.INTERMEDIATE and conn[1].address[0] not in already_printed:
+            already_printed.append(conn[1].address[0])
             print(conn[1].address[0], conn[1].ttl)
 
 
