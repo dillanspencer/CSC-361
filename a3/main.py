@@ -50,7 +50,8 @@ def main():
             packets[packet_num].IP_header = load_ipv4_header(data)
             if packets[packet_num].IP_header.protocol != 1:
                 packets[packet_num].TCP_header = load_tcp_header(data)
-            check_connection(packets[packet_num], connections, frag_queue)
+            if packets[packet_num].IP_header.protocol == 17 or packets[packet_num].IP_header.protocol == 1:
+                check_connection(packets[packet_num], connections, frag_queue)
         except struct.error as err:
             break
 
@@ -70,10 +71,9 @@ def check_connection(packet, connections, frag_queue):
     buffer = (src_ip, src_port, dst_ip, dst_port)
     ID = utils.pack_id(buffer)
 
-    # Check for fragment flag and add to queue
-    if packet.IP_header.flag == 32 and packet.IP_header.protocol == 17:
+    if packet.IP_header.flag == 32:
+        # print(packet.packet_No+1, packet.TCP_header.src_port)
         frag_queue.append(packet)
-        return
 
     # Add connection
     if ID not in connections:
@@ -83,14 +83,11 @@ def check_connection(packet, connections, frag_queue):
     else:
         connections[ID].add_packet(packet)
 
-    # Load connection with fragmented packets
     if packet.IP_header.flag == 0 and packet.IP_header.frag_offset != 0:
-        for fragment in list(frag_queue):
-            frag_id = fragment.IP_header.identification
+        for frag in frag_queue:
+            frag_id = frag.IP_header.identification
             if packet.IP_header.identification == frag_id:
-                print(fragment.packet_No + 1, frag_id, packet.TCP_header.src_port, packet.packet_No + 1)
-                connections[ID].add_packet(fragment)
-                frag_queue.remove(fragment)
+                print(frag.packet_No + 1, frag_id, packet.TCP_header.src_port, packet.packet_No + 1)
 
 
 # Loads data into general header object
@@ -148,7 +145,6 @@ def load_ipv4_header(data):
     flag = data[20:21]
     ident = data[18:20]
     frag_offset = data[20:22]
-
 
     header.get_IP(src, dest)
     header.get_total_len(total_len)

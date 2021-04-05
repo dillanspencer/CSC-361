@@ -332,7 +332,7 @@ class packet:
         time_sec = struct.unpack('I', orig_time)[0]
         time_micro = struct.unpack('<I', micro)[0]
         time = time_sec + time_micro * 0.000000001
-        self.timestamp = round(seconds + microseconds * 0.000000001 - time, 9)
+        self.timestamp = round(seconds + microseconds * 0.000000001 - time, 6)
         # print(self.timestamp, self.packet_No)
 
     def packet_No_set(self, number):
