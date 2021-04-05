@@ -109,11 +109,12 @@ class IP_Header:
         self.flag = value
 
     def get_frag_offset(self, buffer):
+        num1 = ((buffer[0] & 240) >> 4) * 16 * 16 * 16
         num2 = (buffer[0] & 15) * 16 * 16
         num3 = ((buffer[1] & 240) >> 4) * 16
         num4 = (buffer[1] & 15)
         length = num2 + num3 + num4
-        self.frag_offset = length
+        self.frag_offset = length << 3
 
     def get_identification(self, buffer):
         num1 = ((buffer[0] & 240) >> 4) * 16 * 16 * 16

@@ -9,6 +9,10 @@ import connection
 import utils
 from connection import ConnectionType
 
+num_fragments = 0
+max_fragments = 0
+offset = 0
+
 
 def main():
     # Read CAP file
@@ -70,10 +74,20 @@ def check_connection(packet, connections, frag_queue):
     dst_port = packet.TCP_header.dst_port
     buffer = (src_ip, src_port, dst_ip, dst_port)
     ID = utils.pack_id(buffer)
+    global num_fragments
+    global max_fragments
+    global offset
 
     if packet.IP_header.flag == 32:
-        # print(packet.packet_No+1, packet.TCP_header.src_port)
-        frag_queue.append(packet)
+        num_fragments += 1
+
+    if packet.IP_header.flag == 0 and packet.IP_header.frag_offset != 0:
+        num_fragments += 1
+        max_fragments = max(max_fragments, num_fragments)
+        num_fragments = 0
+
+    if packet.IP_header.frag_offset != 0:
+        offset = packet.IP_header.frag_offset
 
     # Add connection
     if ID not in connections:
@@ -82,12 +96,6 @@ def check_connection(packet, connections, frag_queue):
         connections[ID] = c
     else:
         connections[ID].add_packet(packet)
-
-    if packet.IP_header.flag == 0 and packet.IP_header.frag_offset != 0:
-        for frag in frag_queue:
-            frag_id = frag.IP_header.identification
-            if packet.IP_header.identification == frag_id:
-                print(frag.packet_No + 1, frag_id, packet.TCP_header.src_port, packet.packet_No + 1)
 
 
 # Loads data into general header object
@@ -202,11 +210,15 @@ def connection_details(connections):
                 headers.append(x)
         if conn[1].get_connection_type() is ConnectionType.INTERMEDIATE and conn[1].address[0] not in already_printed:
             already_printed.append(conn[1].address[0])
-            print("\trouter {0}:".format(count), conn[1].address[0], conn[1].address[3])
+            print("\trouter {0}:".format(count), conn[1].address[0])
             count += 1
     print("\nThe values in the protocol field of IP headers:")
     for h in sorted(headers):
         print("\t{0}: {1}".format(h, utils.Protocol(h).name))
+
+    print()
+    print("The number of fragments created from the original datagram is: {0}".format(max_fragments))
+    print("The offset of the last fragment is: {0}".format(offset))
 
     # RTT
     rtt = {}
@@ -216,8 +228,10 @@ def connection_details(connections):
                 rtt[conn[1].address[0]] = conn[1].calculate_rtt() * 1000
             else:
                 rtt[conn[1].address[0]] += conn[1].calculate_rtt() * 1000
+    print()
     for value in rtt:
-        print("router: {0}, RTT: {1}".format(value, round(rtt[value], 4)))
+        print("The avg RTT between {0} and {1} is: {2} ms".format(conn[1].address[2], conn[1].address[0],
+                                                                  round(rtt[value], 4)))
 
 
 if __name__ == '__main__':
