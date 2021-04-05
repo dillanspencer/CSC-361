@@ -17,6 +17,7 @@ def main():
 
     # Lists for packets and connections
     packets = []
+    frag_queue = []
     connections = {}
 
     # Read General Header
@@ -36,7 +37,7 @@ def main():
     packets[packet_num].IP_header = load_ipv4_header(data)
     packets[packet_num].TCP_header = load_tcp_header(data)
 
-    check_connection(packets[packet_num], connections)
+    check_connection(packets[packet_num], connections, frag_queue)
 
     while True:
         try:
@@ -47,8 +48,9 @@ def main():
             data = file.read(packets[packet_num].incl_len)
             packets[packet_num].Ethernet_header = load_ethernet_header(data)
             packets[packet_num].IP_header = load_ipv4_header(data)
-            packets[packet_num].TCP_header = load_tcp_header(data)
-            check_connection(packets[packet_num], connections)
+            if packets[packet_num].IP_header.protocol != 1:
+                packets[packet_num].TCP_header = load_tcp_header(data)
+            check_connection(packets[packet_num], connections, frag_queue)
         except struct.error as err:
             break
 
@@ -60,13 +62,18 @@ def main():
 # Takes a packet and checks what connection it belongs to
 # If no connection is found, a new connection is created
 # and packet is added to connection.
-def check_connection(packet, connections):
+def check_connection(packet, connections, frag_queue):
     src_ip = packet.IP_header.src_ip
     dst_ip = packet.IP_header.dst_ip
     src_port = packet.TCP_header.src_port
     dst_port = packet.TCP_header.dst_port
     buffer = (src_ip, src_port, dst_ip, dst_port)
     ID = utils.pack_id(buffer)
+
+    # Check for fragment flag and add to queue
+    if packet.IP_header.flag == 32 and packet.IP_header.protocol == 17:
+        frag_queue.append(packet)
+        return
 
     # Add connection
     if ID not in connections:
@@ -75,6 +82,15 @@ def check_connection(packet, connections):
         connections[ID] = c
     else:
         connections[ID].add_packet(packet)
+
+    # Load connection with fragmented packets
+    if packet.IP_header.flag == 0 and packet.IP_header.frag_offset != 0:
+        for fragment in list(frag_queue):
+            frag_id = fragment.IP_header.identification
+            if packet.IP_header.identification == frag_id:
+                print(fragment.packet_No + 1, frag_id, packet.TCP_header.src_port, packet.packet_No + 1)
+                connections[ID].add_packet(fragment)
+                frag_queue.remove(fragment)
 
 
 # Loads data into general header object
@@ -129,12 +145,19 @@ def load_ipv4_header(data):
     header_len = data[14:15]
     ttl = data[22:23]
     protocol = data[23:24]
+    flag = data[20:21]
+    ident = data[18:20]
+    frag_offset = data[20:22]
+
 
     header.get_IP(src, dest)
     header.get_total_len(total_len)
     header.get_header_len(header_len)
     header.get_ttl(ttl)
     header.get_protocol(protocol)
+    header.get_flag(flag)
+    header.get_identification(ident)
+    header.get_frag_offset(frag_offset)
 
     # Check if packet is ICMP and load data from header
     if header.protocol == 1:
@@ -183,7 +206,7 @@ def connection_details(connections):
                 headers.append(x)
         if conn[1].get_connection_type() is ConnectionType.INTERMEDIATE and conn[1].address[0] not in already_printed:
             already_printed.append(conn[1].address[0])
-            print("\trouter {0}:".format(count), conn[1].address[0])
+            print("\trouter {0}:".format(count), conn[1].address[0], conn[1].address[3])
             count += 1
     print("\nThe values in the protocol field of IP headers:")
     for h in sorted(headers):
@@ -191,18 +214,14 @@ def connection_details(connections):
 
     # RTT
     rtt = {}
-    rtt_len = {}
     for conn in sorted_connections:
         if conn[1].get_connection_type() is ConnectionType.INTERMEDIATE:
             if conn[1].address[0] not in rtt:
                 rtt[conn[1].address[0]] = conn[1].calculate_rtt() * 1000
-                rtt_len[conn[1].address[0]] = 1
             else:
                 rtt[conn[1].address[0]] += conn[1].calculate_rtt() * 1000
-                rtt_len[conn[1].address[0]] += 1
     for value in rtt:
-        rtt[value] /= rtt_len[value]
-        print("router: {0}, RTT: {1}".format(value, rtt[value]))
+        print("router: {0}, RTT: {1}".format(value, round(rtt[value], 4)))
 
 
 if __name__ == '__main__':

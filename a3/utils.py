@@ -27,6 +27,8 @@ class IP_Header:
     ip_header_len = None  # <type 'int'>
     total_len = None  # <type 'int'>
     protocol = None
+    flag = None
+    identification = None
 
     # ICMP attributes
     icmp_type = None
@@ -45,6 +47,9 @@ class IP_Header:
         self.icmp_code = None
         self.icmp_data = None
         self.checksum = None
+        self.flag = None
+        self.identification = None
+        self.frag_offset = 0
 
     def ip_set(self, src_ip, dst_ip):
         self.src_ip = src_ip
@@ -98,6 +103,25 @@ class IP_Header:
 
     def get_icmp_data(self, buffer):
         self.icmp_data = buffer
+
+    def get_flag(self, buffer):
+        value = struct.unpack('B', buffer)[0]
+        self.flag = value
+
+    def get_frag_offset(self, buffer):
+        num2 = (buffer[0] & 15) * 16 * 16
+        num3 = ((buffer[1] & 240) >> 4) * 16
+        num4 = (buffer[1] & 15)
+        length = num2 + num3 + num4
+        self.frag_offset = length
+
+    def get_identification(self, buffer):
+        num1 = ((buffer[0] & 240) >> 4) * 16 * 16 * 16
+        num2 = (buffer[0] & 15) * 16 * 16
+        num3 = ((buffer[1] & 240) >> 4) * 16
+        num4 = (buffer[1] & 15)
+        length = num1 + num2 + num3 + num4
+        self.identification = length
 
 
 class TCP_Header:
@@ -308,7 +332,7 @@ class packet:
         time_sec = struct.unpack('I', orig_time)[0]
         time_micro = struct.unpack('<I', micro)[0]
         time = time_sec + time_micro * 0.000000001
-        self.timestamp = round(seconds + microseconds * 0.000000001 - time, 6)
+        self.timestamp = round(seconds + microseconds * 0.000000001 - time, 9)
         # print(self.timestamp, self.packet_No)
 
     def packet_No_set(self, number):
