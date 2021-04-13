@@ -19,6 +19,7 @@ class Connection:
     connection_type = None
     address = None
     packets = None
+    framented_packets = None
     flags = None
     state = None
     packets_sent = None
@@ -33,11 +34,13 @@ class Connection:
     ID = None
     parent_address = None
     parent_id = None
+    connections = None
 
     def __init__(self, src_ip, src_port, dst_ip, dst_port):
         self.root = None
         self.address = (src_ip, src_port, dst_ip, dst_port)
         self.packets = []
+        self.fragmented_packets = []
         self.ID = utils.pack_id(self.address)
         self.parent_id = None
         self.parent_address = None
@@ -52,6 +55,7 @@ class Connection:
         self.min_window = float("inf")
         self.max_window = float("-inf")
         self.rtt_values = []
+        self.connections = {}
 
     # Adds packet to list
     # Checks packet flags and handles connection status
@@ -145,31 +149,14 @@ class Connection:
     # Matches packets from SRC with its ACK packet from DST
     # Returns a list of all rtt times for this connection
     def calculate_rtt(self):
-        for src in self.packets:
-            # Check if packet is from SRC
-            if src.IP_header.src_ip != self.address[0]:
-                continue
-            ip_len = src.IP_header.ip_header_len
-            tcp_offset = src.TCP_header.data_offset
-            payload = src.incl_len - ip_len - tcp_offset - 14
-            src_seq = src.TCP_header.seq_num
-            src_flags = src.TCP_header.flags
-            for dst in self.packets:
-                # Check if packet is from DST
-                if dst.IP_header.src_ip != self.address[2]:
-                    continue
-                ack = dst.TCP_header.ack_num
-                if payload > 0:
-                    if ack == src_seq + payload:
-                        rtt = utils.get_RTT_value(src, dst)
-                        self.rtt_values.append(rtt)
-                        break
-                elif payload == 0:
-                    if src_seq + 1 == ack:
-                        if src_flags["SYN"] == 1 or src_flags["FIN"] == 1:
-                            rtt = utils.get_RTT_value(src, dst)
-                            self.rtt_values.append(rtt)
-                            break
+        total_rtt = 0
+        for packet in self.packets:
+            parent_connection = self.connections[packet.parent]
+            start_time = parent_connection.packets[0].timestamp
+            end_time = packet.timestamp
+            elapsed_time = end_time - start_time
+            total_rtt += elapsed_time
+        self.rtt_values = total_rtt / len(self.packets)
         return self.rtt_values
 
     def check_hops(self, packet):
@@ -189,11 +176,13 @@ class Connection:
         self.parent_id = utils.pack_id((trigger.IP_header.src_ip, trigger.TCP_header.src_port, trigger.IP_header.dst_ip,
                                         trigger.TCP_header.dst_port))
         self.ttl = trigger.IP_header.ttl + 1
+        packet.packet_parent_set(self.parent_id)
 
     def get_hops(self, connections):
         if self.connection_type != ConnectionType.INTERMEDIATE:
             return 0
         parent = connections[self.parent_id]
+        self.connections = connections
         return parent.get_packet_number() + self.ttl
 
     # returns if this is a complete connection
