@@ -6,7 +6,7 @@ from structs import *
 width = 600
 height = 600
 
-max_depth = 3
+max_depth = 1
 
 camera = np.array([0, 0, 1])
 ratio = float(width) / height
@@ -21,6 +21,7 @@ def main():
     objects = [s.output() for s in scene.spheres]
     lights = [s.output() for s in scene.lights]
     image = np.zeros((height, width, 3))
+
     for i, y in enumerate(np.linspace(screen[1], screen[3], height)):
         for j, x in enumerate(np.linspace(screen[0], screen[2], width)):
             # screen is on origin
@@ -28,7 +29,7 @@ def main():
             origin = camera
             direction = normalize(pixel - origin)
 
-            color = np.zeros((3))
+            color = np.zeros(3)
             reflection = 1
 
             for light in lights:
@@ -36,6 +37,7 @@ def main():
                     # check for intersections
                     nearest_object, min_distance = nearest_intersected_object(objects, origin, direction)
                     if nearest_object is None:
+                        color = np.array([1, 1, 1])
                         break
 
                     intersection = origin + min_distance * direction
@@ -54,7 +56,8 @@ def main():
                     illumination = np.zeros((3))
 
                     # ambiant
-                    illumination += nearest_object['ambient'] * light['ambient']
+                    ambient = np.array([0.5, 0.5, 0.5])
+                    illumination += nearest_object['ambient'] * light['ambient'] / ambient
 
                     # diffuse
                     illumination += nearest_object['diffuse'] * light['diffuse'] * np.dot(intersection_to_light,
