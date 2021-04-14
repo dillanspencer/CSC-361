@@ -48,8 +48,8 @@ class Sphere:
 
     def output(self):
         return {'center': np.array([self.x, self.y, self.z]),
-                'radius': 0.7, 'ambient': self.ka, 'diffuse': self.kd,
-                'specular': self.ks, 'shininess': 100, 'reflection': self.kr}
+                'radius': 1, 'ambient': self.ka, 'diffuse': self.kd,
+                'specular': self.ks, 'shininess': 0, 'reflection': self.kr}
 
 
 class Light:
@@ -82,8 +82,8 @@ class Light:
 
     def output(self):
         return {'position': np.array([self.posx, self.posy, self.posz]),
-                'ambient': np.array([self.lr, self.lg, self.lb]), 'diffuse': np.array([1, 1, 1]),
-                'specular': np.array([1, 1, 1])}
+                'ambient': np.array([self.lr, self.lg, self.lb]), 'diffuse': np.array([0, 0, 0]),
+                'specular': np.array([0, 0, 0])}
 
     def print_light(self):
         print("LIGHTS:")
