@@ -12,7 +12,7 @@ class Sphere:
         self.scale_y = 1
         self.scale_z = 1
         self.color = 0
-        self.ka = 0
+        self.ka = 0.5
         self.kd = 0
         self.ks = 0
         self.kr = 0

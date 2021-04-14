@@ -3,8 +3,8 @@ import re
 import sys
 from structs import *
 
-width = 300
-height = 200
+width = 600
+height = 600
 
 max_depth = 3
 
@@ -171,7 +171,7 @@ def parse(lines):
             name = info[1]
             posx = float(info[2])
             posy = float(info[3])
-            posz = float(info[4])
+            posz = -float(info[4])
             lr = float(info[5])
             lg = float(info[6])
             lb = float(info[7])
